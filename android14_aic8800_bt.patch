@@ -1,0 +1,210 @@
+diff --git a/device/rockchip/common/build/rockchip/build.sh b/device/rockchip/common/build/rockchip/build.sh
+index addd8d90492..26b5ff22509 100755
+--- a/device/rockchip/common/build/rockchip/build.sh
++++ b/device/rockchip/common/build/rockchip/build.sh
+@@ -146,7 +146,7 @@ fi
+ # build kernel
+ if [ "$BUILD_KERNEL" = true ] ; then
+ echo "Start build kernel"
+-cd $LOCAL_KERNEL_PATH && make clean && make $ADDON_ARGS ARCH=$KERNEL_ARCH $KERNEL_DEFCONFIG && make $ADDON_ARGS ARCH=$KERNEL_ARCH $KERNEL_DTS.img -j$BUILD_JOBS && cd -
++cd $LOCAL_KERNEL_PATH && make $ADDON_ARGS ARCH=$KERNEL_ARCH $KERNEL_DEFCONFIG && make $ADDON_ARGS ARCH=$KERNEL_ARCH $KERNEL_DTS.img -j$BUILD_JOBS && cd -
+ if [ $? -eq 0 ]; then
+     echo "Build kernel ok!"
+ else
+@@ -221,7 +221,7 @@ if [ "$BUILD_ANDROID" = true ] ; then
+         INTERNAL_OTA_PACKAGE_TARGET=$TARGET_PRODUCT-ota-*.zip
+         if [ "$BUILD_AB_IMAGE" = true ] ; then
+             echo "make ab image and generate ota package"
+-            make installclean
++            #make installclean
+             make -j$BUILD_JOBS
+             # check the result of make
+             if [ $? -eq 0 ]; then
+@@ -249,7 +249,7 @@ if [ "$BUILD_ANDROID" = true ] ; then
+             fi
+         else
+             echo "generate ota package"
+-	    make installclean
++	    #make installclean
+ 	    make -j$BUILD_JOBS
+             # check the result of make
+             if [ $? -eq 0 ]; then
+@@ -279,7 +279,7 @@ if [ "$BUILD_ANDROID" = true ] ; then
+         cp $OUT/$INTERNAL_OTA_PACKAGE_OBJ_TARGET $IMAGE_PATH/
+     else # regular build without OTA
+         echo "start build android"
+-        make installclean
++        #make installclean
+         make -j$BUILD_JOBS
+         # check the result of make
+         if [ $? -eq 0 ]; then
+diff --git a/device/rockchip/common/init.connectivity.rc b/device/rockchip/common/init.connectivity.rc
+index f40ba60cdc3..ebc1678254c 100755
+--- a/device/rockchip/common/init.connectivity.rc
++++ b/device/rockchip/common/init.connectivity.rc
+@@ -38,6 +38,9 @@ on zygote-start
+     chown bluetooth system /sys/class/rfkill/rfkill1/name
+     chmod 0664 /sys/class/rfkill/rfkill1/state
+     chmod 0777 /dev/ir_gpio
++    # for aic bt usb
++    chmod 0660 /dev/aicbt_dev
++    chown bluetooth system /dev/aicbt_dev
+ 
+ # for wifi
+ 
+diff --git a/device/rockchip/common/modules/bluetooth.mk b/device/rockchip/common/modules/bluetooth.mk
+index 426e4af2e13..cb73ee8f25c 100644
+--- a/device/rockchip/common/modules/bluetooth.mk
++++ b/device/rockchip/common/modules/bluetooth.mk
+@@ -70,7 +70,7 @@ include hardware/realtek/rtkbt/rtkbt.mk
+ endif
+ 
+ ifeq ($(strip $(BOARD_HAVE_BLUETOOTH_AIC)), true)
+--include hardware/aic/device-aic.mk
++include hardware/aic/device-aic.mk
+ PRODUCT_PACKAGES += libbt-vendor-aic
+ endif
+ 
+diff --git a/device/rockchip/common/rootdir/init.insmod.sh b/device/rockchip/common/rootdir/init.insmod.sh
+index 10d3aab55ab..561fc7e4337 100755
+--- a/device/rockchip/common/rootdir/init.insmod.sh
++++ b/device/rockchip/common/rootdir/init.insmod.sh
+@@ -51,7 +51,8 @@ if [ -f $cfg_file ]; then
+     esac
+   done < $cfg_file
+ fi
+-
++insmod /vendor/lib/aic_load_fw.ko
++insmod /vendor/lib/aic_btusb.ko
+ # set property even if there is no insmod config
+ # as property value "1" is expected in early-boot trigger
+ setprop vendor.all.modules.ready 1
+diff --git a/device/rockchip/common/wifi_bt_common.mk b/device/rockchip/common/wifi_bt_common.mk
+index bff4294e936..df10c73bec5 100644
+--- a/device/rockchip/common/wifi_bt_common.mk
++++ b/device/rockchip/common/wifi_bt_common.mk
+@@ -49,8 +49,8 @@ WIFI_DRIVER_FW_PATH_P2P     := "/vendor/etc/firmware/fw_bcm4329_p2p.bin"
+ WIFI_DRIVER_FW_PATH_AP      := "/vendor/etc/firmware/fw_bcm4329_apsta.bin"
+ BOARD_HAVE_BLUETOOTH := true
+ BOARD_HAVE_BLUETOOTH_BCM := false
+-BOARD_HAVE_BLUETOOTH_RTK := true
+-BOARD_HAVE_BLUETOOTH_AIC := false
++BOARD_HAVE_BLUETOOTH_RTK := false
++BOARD_HAVE_BLUETOOTH_AIC := true
+ BOARD_HAVE_BLUETOOTH_SEEKWAVE := true
+ BOARD_BLUETOOTH_BDROID_BUILDCFG_INCLUDE_DIR ?= device/rockchip/$(TARGET_BOARD_PLATFORM)/bluetooth
+ endif
+diff --git a/device/rockchip/rk356x/init.rk356x.rc b/device/rockchip/rk356x/init.rk356x.rc
+index 0d0ad341aa9..b18e8f4d29a 100644
+--- a/device/rockchip/rk356x/init.rk356x.rc
++++ b/device/rockchip/rk356x/init.rk356x.rc
+@@ -97,10 +97,10 @@ on init
+     chown system system /sys/class/devfreq/dmc/system_status
+     chmod 0666 /sys/class/devfreq/dmc/system_status
+ 	#wifi bt
+-	insmod /vendor_dlkm/lib/modules/aic_load_fw.ko
+-	insmod /vendor_dlkm/lib/modules/aic8800_fdrv.ko
+-	insmod /vendor_dlkm/lib/modules/aic_btusb.ko
+-	insmod /vendor_dlkm/lib/modules/8821cu.ko
++	#insmod /vendor_dlkm/lib/modules/aic_load_fw.ko
++	#insmod /vendor_dlkm/lib/modules/aic8800_fdrv.ko
++	#insmod /vendor_dlkm/lib/modules/aic_btusb.ko
++	#insmod /vendor_dlkm/lib/modules/8821cu.ko
+ 
+ on property:cts_gts.status=true
+     setprop vendor.hwc.compose_policy 2
+diff --git a/device/rockchip/rk356x/rk3568_vt76/bt_vendor.conf b/device/rockchip/rk356x/rk3568_vt76/bt_vendor.conf
+index d98c62e94fe..764a2b03a29 100755
+--- a/device/rockchip/rk356x/rk3568_vt76/bt_vendor.conf
++++ b/device/rockchip/rk356x/rk3568_vt76/bt_vendor.conf
+@@ -1,5 +1,5 @@
+ # UART device port where Bluetooth controller is attached
+-UartPort = /dev/ttyS8
++UartPort = /dev/aicbt_dev
+ 
+ # Firmware patch file location
+ FwPatchFilePath = /vendor/etc/firmware/
+diff --git a/frameworks/opt/net/wifi/libwifi_hal/rk_wifi_ctrl.cpp b/frameworks/opt/net/wifi/libwifi_hal/rk_wifi_ctrl.cpp
+index 93400479b3a..786a6ac76e7 100755
+--- a/frameworks/opt/net/wifi/libwifi_hal/rk_wifi_ctrl.cpp
++++ b/frameworks/opt/net/wifi/libwifi_hal/rk_wifi_ctrl.cpp
+@@ -169,6 +169,7 @@ static wifi_device supported_wifi_devices[] = {
+ 	{"BES2600",	"be57:2002"},
+ 	{"AIC8800",	"5449:0145"},
+ 	{"AIC8800",     "c8a1:0082"},
++	{"AIC8800",     "1d6b:0002"},
+ 	{"SKW6160",     "0483:5720"},
+ 	{"SKW6160",     "0483:5721"},
+ 	{"SKW6160",     "0000:0000"},
+@@ -315,7 +316,7 @@ int check_wifi_chip_type_string(char *type)
+ 			PLOG(INFO) << "PCIE WIFI identify sucess";
+ 		else {
+ 			PLOG(ERROR) << "maybe there is no usb wifi or sdio or pcie wifi,set default wifi module Brocom APXXX";
+-			strcpy(recoginze_wifi_chip, "APXXX");
++			strcpy(recoginze_wifi_chip, "AIC8800");
+ 			identify_sucess = 1 ;
+ 		}
+ 	}
+diff --git a/frameworks/opt/net/wifi/libwifi_hal/wifi_hal_common.cpp b/frameworks/opt/net/wifi/libwifi_hal/wifi_hal_common.cpp
+index 660d0bf52d0..fad74b5dc77 100755
+--- a/frameworks/opt/net/wifi/libwifi_hal/wifi_hal_common.cpp
++++ b/frameworks/opt/net/wifi/libwifi_hal/wifi_hal_common.cpp
+@@ -32,7 +32,10 @@ extern "C" int delete_module(const char *, unsigned int);
+ #define WIFI_MODULE_PATH                "/vendor/lib/modules/"
+ #define MLAN_DRIVER_MODULE_PATH          WIFI_MODULE_PATH"mlan.ko"
+ #define BCM_STATIC_BUF_MODULE_PATH	 WIFI_MODULE_PATH"dhd_static_buf.ko"
+-#define AIC8800_BSP_DRIVER_MODULE_PATH   WIFI_MODULE_PATH"aic8800_bsp.ko"
++#define AIC8800_BSP_DRIVER_MODULE_PATH   WIFI_MODULE_PATH"aic8800_fdrv.ko"
++//#define AIC8800_BSP_DRIVER_MODULE_PATH   WIFI_MODULE_PATH"aic8800_bsp.ko" 
++#define AIC8800_DRIVER_LOAD_FW_PATH        WIFI_MODULE_PATH"aic_load_fw.ko" 
++#define AIC8800_DRIVER_BT_PATH        WIFI_MODULE_PATH"aic_btusb.ko" 
+ #define SKW6160_SDIO_MODULE_PATH	 WIFI_MODULE_PATH"skw_sdio.ko"
+ #define SKW6160_BOOTCOMS_MODULE_PATH	 WIFI_MODULE_PATH"skw_bootcoms.ko"
+ #define MVL_DRIVER_MODULE_NAME           "sd8xxx"
+@@ -298,6 +301,8 @@ int wifi_load_driver() {
+ 
+ 	if (strstr(wifi_ko_path, AIC8800_DRIVER_MODULE_NAME)) {
+ 		insmod(AIC8800_BSP_DRIVER_MODULE_PATH, "");
++		insmod(AIC8800_DRIVER_LOAD_FW_PATH, "");
++		insmod(AIC8800_DRIVER_BT_PATH,"");
+ 		usleep(200000);
+ 	}
+ 
+diff --git a/hardware/aic/aicbt/libbt/include/bt_vendor_aic.h b/hardware/aic/aicbt/libbt/include/bt_vendor_aic.h
+index 06eb095da66..4e853da49a2 100755
+--- a/hardware/aic/aicbt/libbt/include/bt_vendor_aic.h
++++ b/hardware/aic/aicbt/libbt/include/bt_vendor_aic.h
+@@ -122,7 +122,7 @@ do {	\
+ #endif
+ 
+ #ifndef UART_TARGET_BAUD_RATE
+-#define UART_TARGET_BAUD_RATE             3000000
++#define UART_TARGET_BAUD_RATE             1500000
+ #endif
+ 
+ 
+diff --git a/hardware/aic/aicbt/libbt/include/vnd_generic.txt b/hardware/aic/aicbt/libbt/include/vnd_generic.txt
+index 0ce632f67e8..1cb403d030e 100755
+--- a/hardware/aic/aicbt/libbt/include/vnd_generic.txt
++++ b/hardware/aic/aicbt/libbt/include/vnd_generic.txt
+@@ -1,5 +1,5 @@
+-BLUETOOTH_UART_DEVICE_PORT = "/dev/ttyS1"
+-FW_PATCHFILE_LOCATION = "/vendor/firmware/"
++BLUETOOTH_UART_DEVICE_PORT = "/dev/aicbt_dev"
++FW_PATCHFILE_LOCATION = "/vendor/etc/firmware/"
+ LPM_IDLE_TIMEOUT_MULTIPLE = 5
+ SCO_USE_I2S_INTERFACE = TRUE
+ BTVND_DBG = TRUE
+diff --git a/hardware/aic/libbt/Android.mk b/hardware/aic/libbt/Android.mk
+index a939db0bb83..8148b5b8719 100755
+--- a/hardware/aic/libbt/Android.mk
++++ b/hardware/aic/libbt/Android.mk
+@@ -59,7 +59,7 @@ LOCAL_SHARED_LIBRARIES := \
+         libcutils \
+         liblog
+ 
+-LOCAL_MODULE := libbt-vendor-aic
++LOCAL_MODULE := libbt-vendor-aic-bak
+ LOCAL_MODULE_TAGS := optional
+ LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+ LOCAL_MODULE_OWNER := aic

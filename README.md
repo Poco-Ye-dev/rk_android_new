@@ -70,4 +70,7 @@ adb reboot
          if (host->state == STATE_SENDING_CMD11)
              host->state = STATE_WAITING_CMD11_DONE;
 ```
-
+3、AIC8800的驱动参考rk3576_android14_aic8800
+```
+需要外部加载usb驱动
+```

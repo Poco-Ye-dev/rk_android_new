@@ -1,0 +1,14 @@
+1、备份hardware/aic，将aic_hal.tar.gz解压到hardware目录
+
+
+2、WIFI和蓝牙固件统一放下面目录，可修改成用的PCIE SDIO目录
+rk3576/sdk/hardware/aic/device-aic.mk
+AICS_SUBDIRS := $(wildcard hardware/aic/firmware/USB/*/)
+
+drwxr-xr-x 4 hcq hcq 4096 Mar 23 08:35 PCIE
+drwxr-xr-x 7 hcq hcq 4096 Mar 23 08:35 SDIO
+drwxr-xr-x 8 hcq hcq 4096 Mar 23 08:36 USB
+
+3、找到对应wifi驱动，解压到external/wifi_driver(android13统一目录）
+
+

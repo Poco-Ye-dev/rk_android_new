@@ -1,0 +1,59 @@
+diff --git a/libwifi_hal/rk_wifi_ctrl.cpp b/libwifi_hal/rk_wifi_ctrl.cpp
+index dfc95e131..69722c393 100755
+--- a/libwifi_hal/rk_wifi_ctrl.cpp
++++ b/libwifi_hal/rk_wifi_ctrl.cpp
+@@ -171,6 +171,7 @@ static wifi_device supported_wifi_devices[] = {
+ 	{"SKW6160",     "0000:0000"},
+ 	{"SKW6160",     "3607:6160"},
+ 	{"CYW88459",    "14e4:4415"},
++	{"AIC8800",     "a69c:8d80"},
+ };
+ 
+
+--- a/libwifi_hal/rk_wifi_ctrl.cpp
++++ b/libwifi_hal/rk_wifi_ctrl.cpp
+@@ -308,7 +308,7 @@ int check_wifi_chip_type_string(char *type)
+                        PLOG(INFO) << "PCIE WIFI identify sucess";
+                else {
+                        PLOG(ERROR) << "maybe there is no usb wifi or sdio or pcie wifi,set default wifi module AIC8800";
+-                       strcpy(recoginze_wifi_chip, "APXXX");
++                       strcpy(recoginze_wifi_chip, "AIC8800");
+                        identify_sucess = 1 ;
+                }
+
+
+diff --git a/libwifi_hal/wifi_hal_common.cpp b/libwifi_hal/wifi_hal_common.cpp
+index 660d0bf52..fead99a70 100644
+--- a/libwifi_hal/wifi_hal_common.cpp
++++ b/libwifi_hal/wifi_hal_common.cpp
+@@ -32,12 +32,13 @@ extern "C" int delete_module(const char *, unsigned int);
+ #define WIFI_MODULE_PATH                "/vendor/lib/modules/"
+ #define MLAN_DRIVER_MODULE_PATH          WIFI_MODULE_PATH"mlan.ko"
+ #define BCM_STATIC_BUF_MODULE_PATH	 WIFI_MODULE_PATH"dhd_static_buf.ko"
+-#define AIC8800_BSP_DRIVER_MODULE_PATH   WIFI_MODULE_PATH"aic8800_bsp.ko"
++#define AIC8800_BSP_DRIVER_MODULE_PATH   WIFI_MODULE_PATH"aic_load_fw.ko"
+ #define SKW6160_SDIO_MODULE_PATH	 WIFI_MODULE_PATH"skw_sdio.ko"
+ #define SKW6160_BOOTCOMS_MODULE_PATH	 WIFI_MODULE_PATH"skw_bootcoms.ko"
+ #define MVL_DRIVER_MODULE_NAME           "sd8xxx"
+ #define BCM_DRIVER_MODULE_NAME           "bcmdhd"
+ #define AIC8800_DRIVER_MODULE_NAME	 "aic8800"
++#define AIC8800_DRIVER_MODULE_NAME_PATH    WIFI_MODULE_PATH"aic8800_fdrv.ko"
+ #define SKW6160_DRIVER_MODULE_NAME       "skw"
+ 
+ #ifndef WIFI_DRIVER_FW_PATH_STA
+@@ -296,10 +297,11 @@ int wifi_load_driver() {
+ 		insmod(BCM_STATIC_BUF_MODULE_PATH, "");
+ 	}
+ 
+-	if (strstr(wifi_ko_path, AIC8800_DRIVER_MODULE_NAME)) {
+-		insmod(AIC8800_BSP_DRIVER_MODULE_PATH, "");
+-		usleep(200000);
+-	}
++	//if (strstr(wifi_ko_path, AIC8800_DRIVER_MODULE_NAME)) {
++	insmod(AIC8800_BSP_DRIVER_MODULE_PATH, "");
++	usleep(200000);
++  insmod(AIC8800_DRIVER_MODULE_NAME_PATH, "");
++ // }
+ 
+ 	if (strstr(wifi_ko_path, SKW6160_DRIVER_MODULE_NAME)) {
+ 		insmod(SKW6160_SDIO_MODULE_PATH, "");

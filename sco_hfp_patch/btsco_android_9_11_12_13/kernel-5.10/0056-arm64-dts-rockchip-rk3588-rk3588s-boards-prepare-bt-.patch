@@ -1,0 +1,187 @@
+From 3d4d03ca90e059f870a3f9922b019ad74be4e427 Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Sat, 17 Jun 2023 18:13:30 +0800
+Subject: [PATCH 56/99] arm64: dts: rockchip: rk3588/rk3588s boards: prepare bt
+ sco settings
+
+we don't directly add all evb board to enable bt-sco cards
+because it may take some i2s/pcm, which may use dma,
+but dmas may limit.
+
+so we just prepare this settings, then if any one who want to
+support bt-sco, he/she can just add dts in board-level dts.
+
+now, we enable rk3588-evb1 sco just for example.
+Diff in "rk3588-evb1-lp4-v10.dts" is like this:
+
++&bt_sco {
++	status = "okay";
++};
++
++&bt_sound {
++	status = "okay";
++};
++
++&i2s2_2ch {
++	status = "okay";
++};
+
+The default pcm/i2s setting is:
+Format: PCM, dsp_a, MSB first, short sync, rising edge and delay 1 bclk.
+rockchip soc: master; Bt controller: slave
+
+Change-Id: Id161dd43ec3ea657e758852f7214727488633977
+Signed-off-by: Zou Dengming <marsow.zou@rock-chips.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi  | 27 +++++++++++++++++++
+ .../boot/dts/rockchip/rk3588-evb1-lp4-v10.dts | 12 +++++++++
+ .../boot/dts/rockchip/rk3588-evb2-lp4.dtsi    |  5 ++++
+ .../boot/dts/rockchip/rk3588-evb7-lp4.dtsi    |  5 ++++
+ .../boot/dts/rockchip/rk3588s-tablet.dtsi     | 27 +++++++++++++++++++
+ 5 files changed, 76 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi
+index deb40fdea728..f29a82044e47 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi
+@@ -84,6 +84,27 @@ backlight: backlight {
+ 		default-brightness-level = <200>;
+ 	};
+ 
++	bt_sco: bt-sco {
++		status = "disabled";
++		compatible = "delta,dfbmcs320";
++		#sound-dai-cells = <0>;
++	};
++
++	bt_sound: bt-sound {
++		status = "disabled";
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "dsp_a";
++		simple-audio-card,bitclock-inversion = <0>;
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,name = "rockchip,bt";
++		simple-audio-card,cpu {
++			sound-dai = <&i2s2_2ch>;
++		};
++		simple-audio-card,codec {
++			sound-dai = <&bt_sco>;
++		};
++	};
++
+ 	hdmi0_sound: hdmi0-sound {
+ 		status = "disabled";
+ 		compatible = "rockchip,hdmi";
+@@ -915,6 +936,12 @@ &i2s0_sdi0
+ 		     &i2s0_sdo0>;
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m1_lrck &i2s2m1_sclk &i2s2m1_sdi &i2s2m1_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &iep {
+ 	status = "okay";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-evb1-lp4-v10.dts b/arch/arm64/boot/dts/rockchip/rk3588-evb1-lp4-v10.dts
+index d1a264fe597f..b053e9205113 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-evb1-lp4-v10.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3588-evb1-lp4-v10.dts
+@@ -14,3 +14,15 @@ / {
+ 	model = "Rockchip RK3588 EVB1 LP4 V10 Board";
+ 	compatible = "rockchip,rk3588-evb1-lp4-v10", "rockchip,rk3588";
+ };
++
++&bt_sco {
++	status = "okay";
++};
++
++&bt_sound {
++	status = "okay";
++};
++
++&i2s2_2ch {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-evb2-lp4.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-evb2-lp4.dtsi
+index 1d0ef3c5178c..03c9c36d0656 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-evb2-lp4.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-evb2-lp4.dtsi
+@@ -353,6 +353,11 @@ es7202: es7202@32 {
+ 	};
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclk &i2s2m0_lrck &i2s2m0_sdi &i2s2m0_sdo>;
++	status = "disabled";
++};
++
+ &i2s5_8ch {
+ 	status = "okay";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-evb7-lp4.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-evb7-lp4.dtsi
+index 59e61c648bb4..742d57254f3e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-evb7-lp4.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-evb7-lp4.dtsi
+@@ -582,6 +582,11 @@ es8388: es8388@11 {
+ 	};
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclk &i2s2m0_lrck &i2s2m0_sdi &i2s2m0_sdo>;
++	status = "disabled";
++};
++
+ &i2s5_8ch {
+ 	status = "okay";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi b/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi
+index 2a78a4eb05a1..dcdb93f2b725 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi
+@@ -82,6 +82,27 @@ battery: battery {
+ 		charge-full-design-microamp-hours = <4500000>;
+ 	};
+ 
++	bt_sco: bt-sco {
++		status = "disabled";
++		compatible = "delta,dfbmcs320";
++		#sound-dai-cells = <0>;
++	};
++
++	bt_sound: bt-sound {
++		status = "disabled";
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "dsp_a";
++		simple-audio-card,bitclock-inversion = <0>;
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,name = "rockchip,bt";
++		simple-audio-card,cpu {
++			sound-dai = <&i2s2_2ch>;
++		};
++		simple-audio-card,codec {
++			sound-dai = <&bt_sco>;
++		};
++	};
++
+ 	charge-animation {
+ 		compatible = "rockchip,uboot-charge";
+ 		rockchip,uboot-charge-on = <1>;
+@@ -810,6 +831,12 @@ &i2s0_sdi0
+ 		     &i2s0_sdo0>;
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m1_lrck &i2s2m1_sclk &i2s2m1_sdi &i2s2m1_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &iep {
+ 	status = "okay";
+ };
+-- 
+2.25.1
+

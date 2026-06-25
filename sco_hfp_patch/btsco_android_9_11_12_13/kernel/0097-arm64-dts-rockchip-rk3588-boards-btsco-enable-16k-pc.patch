@@ -1,0 +1,67 @@
+From e1e3340e25eb368052f7b369007142606cde7d34 Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Mon, 26 Jun 2023 20:00:26 +0800
+Subject: [PATCH 97/99] arm64: dts: rockchip: rk3588 boards: btsco enable 16k
+ pcm support
+
+In android 9,10,11,12,13, we have already support 16k wbs in
+hardware level code. So, enable 16k support in kernel dts default.
+
+Info:
+In future, to support BTSCO 16k, it only need to change the
+default setting of bluedroid's "DISABLE_WBS" setting.
+
+Change-Id: I31db010004b09723840c9674a093eaaa78822658
+Signed-off-by: Zou Dengming <marsow.zou@rock-chips.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi     | 4 ++--
+ arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi b/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi
+index f29a82044e47..14620a87b124 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588-evb.dtsi
+@@ -87,7 +87,7 @@ backlight: backlight {
+ 	bt_sco: bt-sco {
+ 		status = "disabled";
+ 		compatible = "delta,dfbmcs320";
+-		#sound-dai-cells = <0>;
++		#sound-dai-cells = <1>;
+ 	};
+ 
+ 	bt_sound: bt-sound {
+@@ -101,7 +101,7 @@ simple-audio-card,cpu {
+ 			sound-dai = <&i2s2_2ch>;
+ 		};
+ 		simple-audio-card,codec {
+-			sound-dai = <&bt_sco>;
++			sound-dai = <&bt_sco 1>;
+ 		};
+ 	};
+ 
+diff --git a/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi b/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi
+index dcdb93f2b725..008ff6fb4816 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3588s-tablet.dtsi
+@@ -85,7 +85,7 @@ battery: battery {
+ 	bt_sco: bt-sco {
+ 		status = "disabled";
+ 		compatible = "delta,dfbmcs320";
+-		#sound-dai-cells = <0>;
++		#sound-dai-cells = <1>;
+ 	};
+ 
+ 	bt_sound: bt-sound {
+@@ -99,7 +99,7 @@ simple-audio-card,cpu {
+ 			sound-dai = <&i2s2_2ch>;
+ 		};
+ 		simple-audio-card,codec {
+-			sound-dai = <&bt_sco>;
++			sound-dai = <&bt_sco 1>;
+ 		};
+ 	};
+ 
+-- 
+2.25.1
+

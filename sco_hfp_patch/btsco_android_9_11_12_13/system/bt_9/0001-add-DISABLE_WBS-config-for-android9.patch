@@ -1,0 +1,92 @@
+From fa0130accb8b35b1d4c9d016515a25b45c463613 Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Mon, 15 May 2023 22:24:39 +0800
+Subject: [PATCH 1/3] add DISABLE_WBS config for android9
+
+Change-Id: I2fad3336f8dcd9d36d245b40c019445e3dda27d4
+---
+ bta/ag/bta_ag_sco.cc         | 16 ++++++++++++++++
+ internal_include/bt_target.h |  4 ++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/bta/ag/bta_ag_sco.cc b/bta/ag/bta_ag_sco.cc
+index 94825ea4c..1ff4c7eed 100644
+--- a/bta/ag/bta_ag_sco.cc
++++ b/bta/ag/bta_ag_sco.cc
+@@ -385,8 +385,10 @@ static void bta_ag_create_sco(tBTA_AG_SCB* p_scb, bool is_orig) {
+     return;
+   }
+ 
++#if (DISABLE_WBS == FALSE)
+   if ((p_scb->sco_codec == BTA_AG_CODEC_MSBC) && !p_scb->codec_fallback)
+     esco_codec = BTA_AG_CODEC_MSBC;
++#endif
+ 
+   if (p_scb->codec_fallback) {
+     p_scb->codec_fallback = false;
+@@ -635,9 +637,14 @@ static void bta_ag_sco_event(tBTA_AG_SCB* p_scb, uint8_t event) {
+           /* remove listening connection */
+           bta_ag_remove_sco(p_scb, false);
+ 
++#if (DISABLE_WBS == FALSE)
+           /* start codec negotiation */
+           p_sco->state = BTA_AG_SCO_CODEC_ST;
+           bta_ag_codec_negotiate(p_scb);
++#else
++          bta_ag_create_sco(p_scb, true);
++          p_sco->state = BTA_AG_SCO_OPENING_ST;
++#endif
+           break;
+ 
+         case BTA_AG_SCO_SHUTDOWN_E:
+@@ -732,11 +739,13 @@ static void bta_ag_sco_event(tBTA_AG_SCB* p_scb, uint8_t event) {
+           }
+           break;
+ 
++#if (DISABLE_WBS == FALSE)
+         case BTA_AG_SCO_REOPEN_E:
+           /* start codec negotiation */
+           p_sco->state = BTA_AG_SCO_CODEC_ST;
+           bta_ag_codec_negotiate(p_scb);
+           break;
++#endif
+ 
+         case BTA_AG_SCO_XFER_E:
+           /* save xfer scb */
+@@ -1009,11 +1018,18 @@ static void bta_ag_sco_event(tBTA_AG_SCB* p_scb, uint8_t event) {
+           bta_ag_create_sco(p_scb, false);
+           bta_ag_remove_sco(p_sco->p_xfer_scb, false);
+ 
++#if (DISABLE_WBS == FALSE)
+           /* start codec negotiation */
+           p_sco->state = BTA_AG_SCO_CODEC_ST;
+           tBTA_AG_SCB* p_cn_scb = p_sco->p_xfer_scb;
+           p_sco->p_xfer_scb = nullptr;
+           bta_ag_codec_negotiate(p_cn_scb);
++#else
++          /* create sco connection to peer */
++          bta_ag_create_sco(p_sco->p_xfer_scb, true);
++          p_sco->p_xfer_scb = nullptr;
++          p_sco->state = BTA_AG_SCO_OPENING_ST;
++#endif
+           break;
+         }
+ 
+diff --git a/internal_include/bt_target.h b/internal_include/bt_target.h
+index 066db1418..0a4006261 100644
+--- a/internal_include/bt_target.h
++++ b/internal_include/bt_target.h
+@@ -275,6 +275,10 @@
+ #define BTM_NO_SSP_ON_INQUIRY FALSE
+ #endif
+ 
++#ifndef DISABLE_WBS
++#define DISABLE_WBS FALSE
++#endif
++
+ /* Includes SCO if TRUE */
+ #ifndef BTM_SCO_INCLUDED
+ #define BTM_SCO_INCLUDED TRUE /* TRUE includes SCO code */
+-- 
+2.40.1
+

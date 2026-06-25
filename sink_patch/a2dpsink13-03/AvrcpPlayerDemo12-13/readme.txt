@@ -1,0 +1,3 @@
+android13，14需要设置bluetooth.profile.avrcp.target.enabled为false，avrcp才能获取到正常信息。
+
+android13以下persist.bluetooth.enablenewavrcp 需设置为false,然后avrcp信息才能正常获取。

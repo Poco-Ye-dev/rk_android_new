@@ -1,0 +1,37 @@
+From d8339e604a900a56a92e4265348f2e1a9b399927 Mon Sep 17 00:00:00 2001
+From: Shunhua Lan <lsh@rock-chips.com>
+Date: Thu, 5 Mar 2020 17:12:01 +0800
+Subject: [PATCH] Force refreshing out->device except in when
+ out_set_parameters
+
+Signed-off-by: Shunhua Lan <lsh@rock-chips.com>
+Change-Id: I1b5891368274f339c63c67c60bfceea1f28f6b4c
+---
+ tinyalsa_hal/audio_hw.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/tinyalsa_hal/audio_hw.c b/tinyalsa_hal/audio_hw.c
+index 9086134..56682a5 100644
+--- a/tinyalsa_hal/audio_hw.c
++++ b/tinyalsa_hal/audio_hw.c
+@@ -1588,7 +1588,8 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
+     lock_all_outputs(adev);
+     if (ret >= 0) {
+         val = atoi(value);
+-        if ((val != 0) && ((out->device & val) != val)) {
++        if ((val != 0) && ((out->device & val) != val) ||
++            (val != 0) && !(out->device & AUDIO_DEVICE_OUT_HDMI)) {
+             /* Force standby if moving to/from SPDIF or if the output
+              * device changes when in SPDIF mode */
+             if (((val & AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET) ^
+@@ -1610,7 +1611,6 @@ static int out_set_parameters(struct audio_stream *stream, const char *kvpairs)
+ #ifndef RK3228
+                 do_out_standby(out);
+ #endif
+-
+             }
+             out->device = val;
+         }
+-- 
+2.25.1
+

@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">AvrcpPlayerDemo</string>
+
+    <string name="hello_world">Hello world!</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="btnPlayorPause">PlAY/PAUSE</string>
+    <string name="btnStop">STOP</string>
+    <string name="btnQuit">QUIT</string>
+    <string name="btnPre">PREVIOUS</string>
+    <string name="btnNext">NEXT</string>
+
+    <string name="play">Play</string>
+    <string name="playing">Playing</string>
+    <string name="pause">Pause</string>
+    <string name="unknown_txt">(unknown)</string>
+</resources>

@@ -1,0 +1,31 @@
+From 2d7201aa7447c41faf9e67719fb4db32c5237c5e Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Mon, 15 May 2023 22:06:58 +0800
+Subject: [PATCH] disable wbs and config pcm to slave mode default
+
+1. disable wbs for rtk prefer it, and rk kernel not perfect ready
+   for 16k.
+2. change ESCO_DATA_PATH_PCM to 6 for pcm slave mode.
+
+Change-Id: I8b457fe496c535d8a1076bc37150b8db93a0ef61
+---
+ rtkbt/bluetooth/bdroid_buildcfg.h | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/rtkbt/bluetooth/bdroid_buildcfg.h b/rtkbt/bluetooth/bdroid_buildcfg.h
+index 4a527ef..8a78836 100644
+--- a/rtkbt/bluetooth/bdroid_buildcfg.h
++++ b/rtkbt/bluetooth/bdroid_buildcfg.h
+@@ -68,4 +68,9 @@
+ #define BT_HCI_DEVICE_NODE_MAX_LEN 512
+ 
+ #define KERNEL_MISSING_CLOCK_BOOTTIME_ALARM TRUE
++
++/*rockchip add start*/
++/*disable 16K/MSBC because rtk prefer cvsd*/
++#define DISABLE_WBS TRUE
++#define ESCO_DATA_PATH_PCM 6
+ #endif
+-- 
+2.40.1
+

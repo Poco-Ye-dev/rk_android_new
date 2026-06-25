@@ -1,0 +1,398 @@
+From 0d1ab9be8595b87dea2dccae283d1a3d01e2ccef Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Fri, 16 Jun 2023 14:14:41 +0800
+Subject: [PATCH 62/99] arm64: dts: rockchip: rk356x boards: prepare bt sco
+ settings
+
+we don't directly enable all evb board to support bt-sco cards
+because it may take some i2s/pcm, which may use dma,
+but dmas may limit.
+
+so we just prepare this settings, then if any one who want to
+support bt-sco, he/she can just add dts in board-level dts.
+
+now, we just enable rk3568-evb1 and rk3566-evb1 just for example.
+Diff in "rk3568-evb1-ddr4-v10.dts" is like this:
+
++&bt_sco {
++	status = "okay";
++};
++
++&bt_sound {
++	status = "okay";
++};
++
++&i2s3_2ch {
++	status = "okay";
++};
+
+The default pcm/i2s setting is:
+Format: PCM, dsp_a, MSB first, short sync, rising edge and delay 1 bclk.
+rockchip soc: master; Bt controller: slave
+
+Change-Id: I6668bfbb87e4b0ea71a661bbcf8248cbde77974e
+Signed-off-by: Zou Dengming <marsow.zou@rock-chips.com>
+---
+ arch/arm64/boot/dts/rockchip/rk3566-box.dtsi  | 27 +++++++++++++++++++
+ .../dts/rockchip/rk3566-evb1-ddr4-v10.dts     | 12 +++++++++
+ .../dts/rockchip/rk3566-evb1-ddr4-v10.dtsi    | 13 +++++++++
+ .../dts/rockchip/rk3566-evb2-lp4x-v10.dtsi    | 13 +++++++++
+ .../dts/rockchip/rk3566-evb3-ddr3-v10.dtsi    | 13 +++++++++
+ .../dts/rockchip/rk3566-evb5-lp4x-v10.dtsi    | 13 +++++++++
+ arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi  | 27 +++++++++++++++++++
+ .../dts/rockchip/rk3568-evb1-ddr4-v10.dts     | 12 +++++++++
+ .../dts/rockchip/rk3568-evb2-lp4x-v10.dtsi    | 13 +++++++++
+ .../dts/rockchip/rk3568-evb5-ddr4-v10.dtsi    | 13 +++++++++
+ .../dts/rockchip/rk3568-evb6-ddr3-v10.dtsi    | 13 +++++++++
+ 11 files changed, 169 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-box.dtsi b/arch/arm64/boot/dts/rockchip/rk3566-box.dtsi
+index 8a45da25bbf2..73bba8bea79e 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-box.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3566-box.dtsi
+@@ -32,6 +32,27 @@ vol-down-key {
+ 		};
+ 	};
+ 
++	bt_sco: bt-sco {
++		status = "disabled";
++		compatible = "delta,dfbmcs320";
++		#sound-dai-cells = <0>;
++	};
++
++	bt_sound: bt-sound {
++		status = "disabled";
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "dsp_a";
++		simple-audio-card,bitclock-inversion = <0>;
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,name = "rockchip,bt";
++		simple-audio-card,cpu {
++			sound-dai = <&i2s2_2ch>;
++		};
++		simple-audio-card,codec {
++			sound-dai = <&bt_sco>;
++		};
++	};
++
+ 	dc_12v: dc-12v {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "dc_12v";
+@@ -231,6 +252,12 @@ &i2s1m0_sdi0
+ 		     &i2s1m0_sdo0>;
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &iep {
+ 	status = "okay";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dts b/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dts
+index f602ed98d7ce..55e31aa54465 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dts
+@@ -5,3 +5,15 @@
+ 
+ #include "rk3566-evb1-ddr4-v10.dtsi"
+ #include "rk3568-android.dtsi"
++
++&bt_sco {
++	status = "okay";
++};
++
++&bt_sound {
++	status = "okay";
++};
++
++&i2s3_2ch {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dtsi
+index 1ce24932257a..8963446a1203 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3566-evb1-ddr4-v10.dtsi
+@@ -47,6 +47,13 @@ vcc_camera: vcc-camera-regulator {
+ 	};
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &audiopwmout_diff {
+ 	status = "disabled";
+ };
+@@ -273,6 +280,12 @@ ov02k10_out: endpoint {
+ 	};
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m1_sclktx &i2s2m1_lrcktx &i2s2m1_sdi &i2s2m1_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &i2s3_2ch {
+ 	status = "disabled";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-evb2-lp4x-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3566-evb2-lp4x-v10.dtsi
+index cb938ebd75a5..7b434c5e79ef 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-evb2-lp4x-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3566-evb2-lp4x-v10.dtsi
+@@ -39,6 +39,13 @@ vcc3v3_pcie: gpio-regulator {
+ 	};
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &combphy1_usq {
+ 	status = "okay";
+ };
+@@ -362,6 +369,12 @@ gc2145_out: endpoint {
+ 	};
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &mdio1 {
+ 	rgmii_phy0: phy@0 {
+ 		compatible = "ethernet-phy-ieee802.3-c22";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-evb3-ddr3-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3566-evb3-ddr3-v10.dtsi
+index 858144bbd71a..6d3768c1004b 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-evb3-ddr3-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3566-evb3-ddr3-v10.dtsi
+@@ -44,6 +44,13 @@ vcc_camera: vcc-camera-regulator {
+ 	};
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &combphy1_usq {
+ 	status = "okay";
+ };
+@@ -266,6 +273,12 @@ &i2s1_8ch {
+ 	status = "disabled";
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &i2s3_2ch {
+ 	status = "okay";
+ 	pinctrl-names = "default";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-evb5-lp4x-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3566-evb5-lp4x-v10.dtsi
+index 3368e59a0349..55bfa76c1bb1 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3566-evb5-lp4x-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3566-evb5-lp4x-v10.dtsi
+@@ -47,6 +47,13 @@ &audiopwmout_diff {
+ 	status = "disabled";
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &combphy1_usq {
+ 	status = "okay";
+ };
+@@ -169,6 +176,12 @@ &i2c5 {
+ 	status = "disabled";
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &i2s3_2ch {
+ 	status = "disabled";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi b/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi
+index a0a6abf4b747..a998a93266e0 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi
+@@ -141,6 +141,27 @@ backlight1: backlight1 {
+ 		default-brightness-level = <200>;
+ 	};
+ 
++	bt_sco: bt-sco {
++		status = "disabled";
++		compatible = "delta,dfbmcs320";
++		#sound-dai-cells = <0>;
++	};
++
++	bt_sound: bt-sound {
++		status = "disabled";
++		compatible = "simple-audio-card";
++		simple-audio-card,format = "dsp_a";
++		simple-audio-card,bitclock-inversion = <0>;
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,name = "rockchip,bt";
++		simple-audio-card,cpu {
++			sound-dai = <&i2s3_2ch>;
++		};
++		simple-audio-card,codec {
++			sound-dai = <&bt_sco>;
++		};
++	};
++
+ 	dc_12v: dc-12v {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "dc_12v";
+@@ -1416,6 +1437,12 @@ &i2s1m0_sdi0
+ 		     &i2s1m0_sdo0>;
+ };
+ 
++&i2s3_2ch {
++	pinctrl-0 = <&i2s3m0_sclk &i2s3m0_lrck &i2s3m0_sdi &i2s3m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &iep {
+ 	status = "okay";
+ };
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb1-ddr4-v10.dts b/arch/arm64/boot/dts/rockchip/rk3568-evb1-ddr4-v10.dts
+index 00c28f39269b..c505c37466fb 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568-evb1-ddr4-v10.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3568-evb1-ddr4-v10.dts
+@@ -6,3 +6,15 @@
+ 
+ #include "rk3568-evb1-ddr4-v10.dtsi"
+ #include "rk3568-android.dtsi"
++
++&bt_sco {
++	status = "okay";
++};
++
++&bt_sound {
++	status = "okay";
++};
++
++&i2s3_2ch {
++	status = "okay";
++};
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb2-lp4x-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3568-evb2-lp4x-v10.dtsi
+index 6ee447d812e5..34b7f284bfd3 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568-evb2-lp4x-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3568-evb2-lp4x-v10.dtsi
+@@ -65,6 +65,13 @@ vcc3v3_bu: vcc3v3-bu {
+ 	};
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &combphy0_us {
+ 	status = "okay";
+ };
+@@ -183,6 +190,12 @@ &i2c5 {
+ 	status = "disabled";
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &mdio1 {
+ 	qsgmii_phy0: phy@0 {
+ 		compatible = "ethernet-phy-id001c.c942", "ethernet-phy-ieee802.3-c22";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb5-ddr4-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3568-evb5-ddr4-v10.dtsi
+index de72742feebf..4a51275109fb 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568-evb5-ddr4-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3568-evb5-ddr4-v10.dtsi
+@@ -84,6 +84,13 @@ vcc_camera: vcc-camera-regulator {
+ 	};
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &combphy0_us {
+ 	status = "okay";
+ };
+@@ -360,6 +367,12 @@ &i2c5 {
+ 	status = "disabled";
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &mdio0 {
+ 	sgmii_phy: phy@1 {
+ 		compatible = "ethernet-phy-ieee802.3-c22";
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb6-ddr3-v10.dtsi b/arch/arm64/boot/dts/rockchip/rk3568-evb6-ddr3-v10.dtsi
+index c70fd0451788..c93e47356277 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3568-evb6-ddr3-v10.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3568-evb6-ddr3-v10.dtsi
+@@ -43,6 +43,13 @@ vcc_camera: vcc-camera-regulator {
+ 	};
+ };
+ 
++&bt_sound {
++	status = "disabled";
++	simple-audio-card,cpu {
++		sound-dai = <&i2s2_2ch>;
++	};
++};
++
+ &combphy0_us {
+ 	status = "okay";
+ };
+@@ -201,6 +208,12 @@ &i2c5 {
+ 	/delete-node/ mxc6655xa@15;
+ };
+ 
++&i2s2_2ch {
++	pinctrl-0 = <&i2s2m0_sclktx &i2s2m0_lrcktx &i2s2m0_sdi &i2s2m0_sdo>;
++	rockchip,bclk-fs = <32>;
++	status = "disabled";
++};
++
+ &csi2_dphy_hw {
+ 	status = "okay";
+ };
+-- 
+2.25.1
+

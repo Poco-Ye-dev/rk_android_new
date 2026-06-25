@@ -1,0 +1,270 @@
+From 36b8d02852cfd4f42288db0622dc40f3a5d69792 Mon Sep 17 00:00:00 2001
+From: hh <hh@rock-chips.com>
+Date: Tue, 9 May 2023 09:47:53 +0800
+Subject: [PATCH] [audio hal] support bt sco with both 8k and 16k(wbs)
+
+Change-Id: I09f1ddd1c616ef9613d8eba984b8220d95148883
+Signed-off-by: hh <hh@rock-chips.com>
+Signed-off-by: Zou Dengming <marsow.zou@rock-chips.com>
+---
+ tinyalsa_hal/Android.mk |  5 +--
+ tinyalsa_hal/audio_hw.c | 99 ++++++++++++++++++++++++++++++++++-------
+ tinyalsa_hal/audio_hw.h |  7 ++-
+ 3 files changed, 88 insertions(+), 23 deletions(-)
+
+diff --git a/tinyalsa_hal/Android.mk b/tinyalsa_hal/Android.mk
+index d33c7d4..60a902a 100755
+--- a/tinyalsa_hal/Android.mk
++++ b/tinyalsa_hal/Android.mk
+@@ -90,10 +90,7 @@ endif
+ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3128)
+     LOCAL_CFLAGS += -DRK3128
+ endif
+-ifeq ($(strip $(TARGET_BOARD_PLATFORM_PRODUCT)), laptop)
+-LOCAL_CFLAGS += -DRK3399_LAPTOP
+-LOCAL_CFLAGS += -DBT_AP_SCO
+-endif
++
+ ifeq ($(strip $(TARGET_BOARD_PLATFORM)),rk3528)
+ LOCAL_CFLAGS += -DRK3528
+ endif
+diff --git a/tinyalsa_hal/audio_hw.c b/tinyalsa_hal/audio_hw.c
+index ca0a366..71f97c5 100755
+--- a/tinyalsa_hal/audio_hw.c
++++ b/tinyalsa_hal/audio_hw.c
+@@ -601,8 +601,7 @@ static void read_out_sound_card(struct stream_out *out)
+     for (card = 0; card < SNDRV_CARDS; card++) {
+         sprintf(str, "proc/asound/card%d/id", card);
+         if (access(str, 0)) {
+-            ALOGD("No exist %s, break and finish parsing", str);
+-            break;
++            continue;
+         }
+         file = fopen(str, "r");
+         if (!file) {
+@@ -648,8 +647,7 @@ static void read_in_sound_card(struct stream_in *in)
+     for (card = 0; card < SNDRV_CARDS; card++) {
+         sprintf(str, "proc/asound/card%d/id", card);
+         if(access(str, 0)) {
+-            ALOGD("No exist %s, break and finish parsing", str);
+-                break;
++            continue;
+         }
+         file = fopen(str, "r");
+         if (!file) {
+@@ -792,7 +790,8 @@ static void open_sound_card_policy(struct stream_out *out)
+         return ;
+     }
+ 
+-    if(is_bitstream(out) || (is_multi_pcm(out))) {
++    if(is_bitstream(out) || (is_multi_pcm(out)) ||
++                (out->device & AUDIO_DEVICE_OUT_ALL_SCO)) {
+         return ;
+     }
+ 
+@@ -895,8 +894,7 @@ static int start_output_stream(struct stream_out *out)
+     open_sound_card_policy(out);
+ #endif
+ 
+-    out_dump(out, 0);
+-
++    ALOGD("%s:%d device = 0x%x", __FUNCTION__, __LINE__, out->device);
+     if (out->device & AUDIO_DEVICE_OUT_AUX_DIGITAL) {
+         if (adev->owner[SOUND_CARD_HDMI] == NULL) {
+             card = adev->dev_out[SND_OUT_SOUND_CARD_HDMI].card;
+@@ -938,8 +936,7 @@ static int start_output_stream(struct stream_out *out)
+ 
+     if (out->device & (AUDIO_DEVICE_OUT_SPEAKER |
+                        AUDIO_DEVICE_OUT_WIRED_HEADSET |
+-                       AUDIO_DEVICE_OUT_WIRED_HEADPHONE |
+-                       AUDIO_DEVICE_OUT_ALL_SCO)) {
++                       AUDIO_DEVICE_OUT_WIRED_HEADPHONE)) {
+         card = adev->dev_out[SND_OUT_SOUND_CARD_SPEAKER].card;
+         device = adev->dev_out[SND_OUT_SOUND_CARD_SPEAKER].device;
+         if(card != (int)SND_OUT_SOUND_CARD_UNKNOWN) {
+@@ -979,11 +976,45 @@ static int start_output_stream(struct stream_out *out)
+         }
+     }
+ 
++    if (out->device & AUDIO_DEVICE_OUT_ALL_SCO) {
++        card = adev->dev_out[SND_OUT_SOUND_CARD_BT].card;
++        device = adev->dev_out[SND_OUT_SOUND_CARD_BT].device;
++        ALOGD("pcm_open bt card number = %d, device=%d",card, device);
++        struct pcm_config *pcm_config = &pcm_config_ap_sco;
++        pcm_config->rate = adev->bt_wb_speech_enabled?16000:8000;
++
++        ALOGD("%s pcm_open bt card number = %d, device=%d, src rate: %d dest rate:%d, wbs:%d",
++                __func__, card, device, out->config.rate, pcm_config->rate, adev->bt_wb_speech_enabled);
++        if(card != (int)SND_OUT_SOUND_CARD_UNKNOWN) {
++            out->pcm[SND_OUT_SOUND_CARD_BT] = pcm_open(card, device,
++                                PCM_OUT | PCM_MONOTONIC, pcm_config);
++            if (out->pcm[SND_OUT_SOUND_CARD_BT] &&
++                    !pcm_is_ready(out->pcm[SND_OUT_SOUND_CARD_BT])) {
++                ALOGE("pcm_open(SND_OUT_SOUND_CARD_BT) failed: %s,card number = %d",
++                      pcm_get_error(out->pcm[SND_OUT_SOUND_CARD_BT]),card);
++                pcm_close(out->pcm[SND_OUT_SOUND_CARD_BT]);
++                return -ENOMEM;
++            }
++
++            ret = create_resampler(out->config.rate,
++                    pcm_config->rate,
++                    2,
++                    RESAMPLER_QUALITY_DEFAULT,
++                    NULL,
++                    &out->resampler);
++
++            if (ret != 0) {
++                ret = -EINVAL;
++            }
++        }
++    }
++
+     if (!is_bitstream(out)) {
+         out->fadeIn   = true;
+     }
+ 
+     adev->out_device |= out->device;
++    out_dump(out, 0);
+     ALOGD("%s:%d, out = %p",__FUNCTION__,__LINE__,out);
+     return 0;
+ }
+@@ -1108,11 +1139,13 @@ static int start_input_stream(struct stream_in *in)
+         card = adev->dev_in[SND_IN_SOUND_CARD_MIC].card;
+         device =  adev->dev_in[SND_IN_SOUND_CARD_MIC].device;
+         in->pcm = pcm_open(card, device, PCM_IN, in->config);
+-    } else {
++    } else if (in->device & AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET) {
++        in->config->rate = adev->bt_wb_speech_enabled?16000:8000;
+         card = adev->dev_in[SND_IN_SOUND_CARD_BT].card;
+-        device = adev->dev_in[SND_IN_SOUND_CARD_BT].device;
++        device =  adev->dev_in[SND_IN_SOUND_CARD_BT].device;
+         in->pcm = pcm_open(card, device, PCM_IN, in->config);
+     }
++
+     in_dump(in, 0);
+     if (in->pcm && !pcm_is_ready(in->pcm)) {
+         ALOGE("pcm_open() failed: %s", pcm_get_error(in->pcm));
+@@ -1488,8 +1521,14 @@ int out_dump(const struct audio_stream *stream, int fd)
+ }
+ 
+ void out_route_sound_card(struct stream_out *out, int route) {
+-    if (is_bitstream(out) || is_multi_pcm(out) || out->standby)
++    struct audio_device *adev = out->dev;
++    if (is_bitstream(out) || is_multi_pcm(out))
++        return;
++
++    if (out->standby) {
++        out->device = route;
+         return;
++    }
+ 
+ #ifdef RK3528
+     /*
+@@ -1511,7 +1550,8 @@ void out_route_sound_card(struct stream_out *out, int route) {
+ #endif
+ 
+     ALOGD("%s: current device = 0x%x, route = 0x%x", __FUNCTION__, out->device, route);
+-    if ((route != 0) && (out->device & route) != route) {
++    if ((route != 0) && ((out->device & route) != route || adev->bt_sco_reroute)) {
++        adev->bt_sco_reroute = 0;
+         do_out_standby(out);
+         out->device = route;
+     }
+@@ -2151,7 +2191,12 @@ false_alarm:
+                 if (i == SND_OUT_SOUND_CARD_BT) {
+                     // HARD CODE FIXME 48000 stereo -> 8000 stereo
+                     size_t inFrameCount = bytes/2/2;
+-                    size_t outFrameCount = inFrameCount/6;
++
++                    int destRate = out->config.rate;
++                    int srcRate = adev->bt_wb_speech_enabled? 16000:8000;
++                    int coefficient = (destRate/srcRate);
++                    size_t outFrameCount = inFrameCount/coefficient;
++
+                     int16_t out_buffer[outFrameCount*2];
+                     memset(out_buffer, 0x00, outFrameCount*2);
+ 
+@@ -3487,6 +3532,23 @@ static int adev_set_parameters(struct audio_hw_device *dev, const char *kvpairs)
+     }
+ #endif
+ 
++    ret = str_parms_get_str(parms, AUDIO_PARAMETER_KEY_BT_SCO_WB, value, sizeof(value));
++    if (ret >= 0) {
++        adev->bt_wb_speech_enabled = !strcmp(value, AUDIO_PARAMETER_VALUE_ON);
++        ALOGD("%s: adev:0x%p, bt_wb_speech_enabled = %d",
++            __func__, adev, adev->bt_wb_speech_enabled);
++    }
++
++    ret = str_parms_get_str(parms, "BT_SCO", value, sizeof(value));
++    if (ret >= 0) {
++        adev->bt_sco_reroute ^= !strcmp(value, AUDIO_PARAMETER_VALUE_ON);
++        if (strcmp(value, AUDIO_PARAMETER_VALUE_ON) != 0){
++            adev->bt_wb_speech_enabled = false;
++        }
++    }
++    ALOGD("%s:bt_wb_speech_enabled = %d, sco reroute=%u",
++            __func__, adev->bt_wb_speech_enabled, adev->bt_sco_reroute);
++
+     pthread_mutex_unlock(&adev->lock);
+     str_parms_destroy(parms);
+     return status;
+@@ -3807,11 +3869,10 @@ static int adev_open_input_stream(struct audio_hw_device *dev,
+ 
+     struct pcm_config *pcm_config = flags & AUDIO_INPUT_FLAG_FAST ?
+                                             &pcm_config_in_low_latency : &pcm_config_in;
+-#ifdef BT_AP_SCO
+-    if (adev->mode == AUDIO_MODE_IN_COMMUNICATION && in->device & AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET) {
++    if (in->device & AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET) {
+         pcm_config = &pcm_config_in_bt;
++        pcm_config->rate = adev->bt_wb_speech_enabled?16000:8000;
+     }
+-#endif
+ 
+     if (source == CMCC_KALAOK_MIC) {
+         pcm_config = &pcm_config_kalaok_in;
+@@ -4122,6 +4183,10 @@ static int adev_open(const hw_module_t* module, const char* name,
+     adev->hw_device.get_microphones = adev_get_microphones;
+ 
+     *device = &adev->hw_device.common;
++
++    adev->bt_wb_speech_enabled = false;
++    adev->bt_sco_reroute = 0;
++
+     adev_open_init(adev);
+     return 0;
+ }
+diff --git a/tinyalsa_hal/audio_hw.h b/tinyalsa_hal/audio_hw.h
+index 8b18f0a..f69d46c 100755
+--- a/tinyalsa_hal/audio_hw.h
++++ b/tinyalsa_hal/audio_hw.h
+@@ -154,7 +154,7 @@ struct pcm_config pcm_config_hfp = {
+     .period_count = 4,
+     .format = PCM_FORMAT_S16_LE,
+ };
+-#ifdef BT_AP_SCO
++
+ struct pcm_config pcm_config_ap_sco = {
+     .channels = 2,
+     .rate = 8000,
+@@ -171,7 +171,7 @@ struct pcm_config pcm_config_in_bt = {
+     .format = PCM_FORMAT_S16_LE,
+     .flag = HW_PARAMS_FLAG_LPCM,
+ };
+-#endif
++
+ struct pcm_config pcm_config_deep = {
+     .channels = 2,
+     .rate = 48000,
+@@ -283,6 +283,9 @@ struct audio_device {
+     struct dev_info dev_out[SND_OUT_SOUND_CARD_MAX];
+     struct dev_info dev_in[SND_IN_SOUND_CARD_MAX];
+ 
++    bool bt_wb_speech_enabled;
++    unsigned int bt_sco_reroute;
++
+     // store the sound card number of output devices
+     int out_card[SND_OUT_SOUND_CARD_MAX];
+     // store the sound card number of input devices
+-- 
+2.40.1
+

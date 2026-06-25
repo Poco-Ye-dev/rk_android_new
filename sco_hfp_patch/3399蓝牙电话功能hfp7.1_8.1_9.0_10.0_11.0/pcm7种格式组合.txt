@@ -1,0 +1,32 @@
+PCM 7种格式组合
+simple-audio-card,format = "dsp_b";
+simple-audio-card,bitclock-inversion = <0>;
+simple-audio-card,mclk-fs = <256>;
+
+simple-audio-card,format = "dsp_b";
+simple-audio-card,bitclock-inversion = <0>;
+simple-audio-card,mclk-fs = <128>;
+
+
+simple-audio-card,format = "dsp_b";
+simple-audio-card,bitclock-inversion = <1>;
+simple-audio-card,mclk-fs = <128>;
+
+
+simple-audio-card,format = "dsp_a";
+simple-audio-card,bitclock-inversion = <1>;
+simple-audio-card,mclk-fs = <256>;
+
+
+simple-audio-card,format = "dsp_a";
+simple-audio-card,bitclock-inversion = <1>;
+simple-audio-card,mclk-fs = <128>;
+
+
+simple-audio-card,format = "dsp_a";
+simple-audio-card,bitclock-inversion = <0>;
+simple-audio-card,mclk-fs = <128>;
+
+simple-audio-card,format = "dsp_a";
+simple-audio-card,bitclock-inversion = <0>;
+simple-audio-card,mclk-fs = <256>;

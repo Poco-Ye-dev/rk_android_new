@@ -1,0 +1,36 @@
+From 656a3a8aad08ec1c88a78ba0aaf72ba5e1276da4 Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Fri, 16 Jun 2023 13:24:59 +0800
+Subject: [PATCH 3/3] add config to change the pcm setting outside of bluedroid
+ like in device/rockchip
+
+Change-Id: Ib83ad181f1fbe15a330231a4ca38aec2484659b7
+---
+ device/include/esco_parameters.h | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/device/include/esco_parameters.h b/device/include/esco_parameters.h
+index b79948d00..0fc1de18d 100644
+--- a/device/include/esco_parameters.h
++++ b/device/include/esco_parameters.h
+@@ -19,6 +19,7 @@
+ #pragma once
+ 
+ #include <stdint.h>
++#include "bdroid_buildcfg.h"
+ 
+ /*******************
+  * SCO Codec Types
+@@ -57,7 +58,9 @@ typedef uint8_t esco_coding_format_t;
+ typedef uint8_t esco_pcm_data_format_t;
+ 
+ // SCO Data Path
++#ifndef ESCO_DATA_PATH_PCM
+ #define ESCO_DATA_PATH_PCM 1                /* 0x01-0xFE (PCM Chan) */
++#endif
+ #define ESCO_DATA_PATH_HCI ((uint8_t)0x00)  /* HCI-0, 0x01-0xFE (PCM Chan) */
+ #define ESCO_DATA_PATH_TEST ((uint8_t)0xFF) /* 0xFF-Audio Test */
+ typedef uint8_t esco_data_path_t;
+-- 
+2.40.1
+

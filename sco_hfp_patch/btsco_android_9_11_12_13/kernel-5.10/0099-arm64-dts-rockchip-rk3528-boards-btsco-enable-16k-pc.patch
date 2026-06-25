@@ -1,0 +1,67 @@
+From ac3b62bb6392a08b4f6f3aeb26c5f2246142eb04 Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Tue, 27 Jun 2023 10:04:22 +0800
+Subject: [PATCH 99/99] arm64: dts: rockchip: rk3528 boards: btsco enable 16k
+ pcm support
+
+In android 9,10,11,12,13, we have already support 16k wbs in
+hardware level code. So, enable 16k support in kernel dts default.
+
+Info:
+In future, to support BTSCO 16k, it only need to change the
+default setting of bluedroid's "DISABLE_WBS" setting.
+
+Signed-off-by: Zou Dengming <marsow.zou@rock-chips.com>
+Change-Id: Ide2435eb0fb9e8e0ffb705d8ba4b43af95dd37ff
+---
+ arch/arm64/boot/dts/rockchip/rk3528-demo.dtsi | 4 ++--
+ arch/arm64/boot/dts/rockchip/rk3528-evb.dtsi  | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3528-demo.dtsi b/arch/arm64/boot/dts/rockchip/rk3528-demo.dtsi
+index d9310275cf5f..aebd9464dddd 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3528-demo.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3528-demo.dtsi
+@@ -43,7 +43,7 @@ vol-up-key {
+ 	bt_sco: bt-sco {
+ 		status = "disabled";
+ 		compatible = "delta,dfbmcs320";
+-		#sound-dai-cells = <0>;
++		#sound-dai-cells = <1>;
+ 	};
+ 
+ 	bt_sound: bt-sound {
+@@ -57,7 +57,7 @@ simple-audio-card,cpu {
+ 			sound-dai = <&sai0>;
+ 		};
+ 		simple-audio-card,codec {
+-			sound-dai = <&bt_sco>;
++			sound-dai = <&bt_sco 1>;
+ 		};
+ 	};
+ 
+diff --git a/arch/arm64/boot/dts/rockchip/rk3528-evb.dtsi b/arch/arm64/boot/dts/rockchip/rk3528-evb.dtsi
+index 915a42c20b09..b737c44c3877 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3528-evb.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3528-evb.dtsi
+@@ -42,7 +42,7 @@ vol-up-key {
+ 	bt_sco: bt-sco {
+ 		status = "disabled";
+ 		compatible = "delta,dfbmcs320";
+-		#sound-dai-cells = <0>;
++		#sound-dai-cells = <1>;
+ 	};
+ 
+ 	bt_sound: bt-sound {
+@@ -56,7 +56,7 @@ simple-audio-card,cpu {
+ 			sound-dai = <&sai0>;
+ 		};
+ 		simple-audio-card,codec {
+-			sound-dai = <&bt_sco>;
++			sound-dai = <&bt_sco 1>;
+ 		};
+ 	};
+ 
+-- 
+2.25.1
+

@@ -1,0 +1,26 @@
+From 3ecbf7adf6fed0bec7ea9ef0f95683b52d2cb93e Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Fri, 16 Jun 2023 13:30:16 +0800
+Subject: [PATCH] disable wbs and config pcm to slave mode default
+
+Change-Id: I79f34a73196670405f3db05b5a4e35c3bc6c7f15
+---
+ bluetooth/bdroid_buildcfg.h | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/bluetooth/bdroid_buildcfg.h b/bluetooth/bdroid_buildcfg.h
+index 7c1909b..12ff662 100644
+--- a/bluetooth/bdroid_buildcfg.h
++++ b/bluetooth/bdroid_buildcfg.h
+@@ -19,6 +19,7 @@
+ 
+ #define BTM_DEF_LOCAL_NAME	"rk3566"
+ #define BTA_DM_COD {0x1A, 0x01, 0x10}
+-
++#define DISABLE_WBS TRUE
++#define ESCO_DATA_PATH_PCM 6
+ #endif
+ 
+-- 
+2.25.1
+

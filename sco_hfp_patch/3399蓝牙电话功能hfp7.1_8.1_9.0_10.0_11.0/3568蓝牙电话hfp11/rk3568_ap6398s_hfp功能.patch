@@ -1,0 +1,146 @@
+hxg@ubuntu101:~/work/android/Rockckchip_Android11.0_SDK/ROCKCHIP_ANDROID11.0_SDK_RELEASE/device/rockchip/common$ git diff .
+diff --git a/overlay/packages/apps/Bluetooth/res/values/config.xml b/overlay/packages/apps/Bluetooth/res/values/config.xml
+index 6ce63e9..b054d18 100755
+--- a/overlay/packages/apps/Bluetooth/res/values/config.xml
++++ b/overlay/packages/apps/Bluetooth/res/values/config.xml
+@@ -20,7 +20,7 @@
+     <bool name="profile_supported_a2dp">true</bool>
+     <bool name="profile_supported_a2dp_sink">false</bool>
+     <bool name="profile_supported_hdp">false</bool>
+-    <bool name="profile_supported_hs_hfp">false</bool>
++    <bool name="profile_supported_hs_hfp">true</bool>
+     <bool name="profile_supported_hfpclient">false</bool>
+     <bool name="profile_supported_hid">true</bool>
+     <bool name="profile_supported_opp">true</bool>
+	 
+hxg@ubuntu101:~/work/android/Rockckchip_Android11.0_SDK/ROCKCHIP_ANDROID11.0_SDK_RELEASE/system/bt$ git diff .
+diff --git a/device/include/esco_parameters.h b/device/include/esco_parameters.h
+old mode 100644
+new mode 100755
+index b79948d..2922297
+--- a/device/include/esco_parameters.h
++++ b/device/include/esco_parameters.h
+@@ -57,7 +57,7 @@ typedef uint8_t esco_coding_format_t;
+ typedef uint8_t esco_pcm_data_format_t;
+ 
+ // SCO Data Path
+-#define ESCO_DATA_PATH_PCM 1                /* 0x01-0xFE (PCM Chan) */
++#define ESCO_DATA_PATH_PCM 4            /* 0x01-0xFE (PCM Chan) */  //蓝牙作主
+ #define ESCO_DATA_PATH_HCI ((uint8_t)0x00)  /* HCI-0, 0x01-0xFE (PCM Chan) */
+ #define ESCO_DATA_PATH_TEST ((uint8_t)0xFF) /* 0xFF-Audio Test */
+ typedef uint8_t esco_data_path_t;
+diff --git a/internal_include/bt_target.h b/internal_include/bt_target.h
+index 4aca868..6894e7f 100644
+--- a/internal_include/bt_target.h
++++ b/internal_include/bt_target.h
+@@ -275,9 +275,9 @@
+ #define BTM_NO_SSP_ON_INQUIRY FALSE
+ #endif
+ 
+-#ifndef DISABLE_WBS
+-#define DISABLE_WBS FALSE
+-#endif
++//#ifndef DISABLE_WBS
++#define DISABLE_WBS TRUE
++//#endif
+
+
+hxg@ubuntu101:~/work/android/Rockckchip_Android11.0_SDK/ROCKCHIP_ANDROID11.0_SDK_RELEASE/hardware/broadcom/libbt$ git diff .
+diff --git a/include/vnd_rksdk.txt b/include/vnd_rksdk.txt
+old mode 100644
+new mode 100755
+index 811cf25..7fef04e
+--- a/include/vnd_rksdk.txt
++++ b/include/vnd_rksdk.txt
+@@ -15,8 +15,8 @@ BT_WAKE_VIA_PROC = TRUE
+ SCO_PCM_ROUTING = 0
+ SCO_PCM_IF_CLOCK_RATE = 2
+ SCO_PCM_IF_FRAME_TYPE = 0
+-SCO_PCM_IF_SYNC_MODE = 0
+-SCO_PCM_IF_CLOCK_MODE = 0
++SCO_PCM_IF_SYNC_MODE = 1
++SCO_PCM_IF_CLOCK_MODE = 1
+ PCM_DATA_FMT_SHIFT_MODE = 0
+ PCM_DATA_FMT_FILL_BITS = 0
+ PCM_DATA_FMT_FILL_METHOD = 0
+ 
+ 
+ 
+ 
+ hxg@ubuntu101:~/work/android/Rockckchip_Android11.0_SDK/ROCKCHIP_ANDROID11.0_SDK_RELEASE/kernel/arch/arm64/boot/dts/rockchip$ git diff .
+diff --git a/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi b/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi
+old mode 100644
+new mode 100755
+index 0b9d66b..2c054f6
+--- a/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi
++++ b/arch/arm64/boot/dts/rockchip/rk3568-evb.dtsi
+@@ -60,7 +60,29 @@
+                        sound-dai = <&dig_acodec>;
+                };
+        };
++       
++       bt-sound {
++               compatible = "simple-audio-card";
++               simple-audio-card,format = "dsp_b";
++               simple-audio-card,bitclock-inversion = <1>;
++               simple-audio-card,mclk-fs = <256>;
++               simple-audio-card,name = "rockchip,bt";
++               simple-audio-card,bitclock-master = <&sound2_master>;
++               simple-audio-card,frame-master = <&sound2_master>;
++               simple-audio-card,cpu {
++                       sound-dai = <&i2s3_2ch>;
++               };
++               sound2_master:simple-audio-card,codec {
++                       sound-dai = <&bt_sco>;
++               };
++       };
+ 
++       bt_sco: bt-sco {
++               compatible = "delta,dfbmcs320";
++               #sound-dai-cells = <0>;
++               status = "okay";
++       };
++       
+        backlight: backlight {
+                compatible = "pwm-backlight";
+                pwms = <&pwm4 0 25000 0>;
+@@ -1387,6 +1409,10 @@
+                     &i2s1m0_sdo0>;
+ };
+ 
++&i2s3_2ch {
++       status = "okay";
++};
+
+
+
+
+音频HAL 直接替换hardware/rockchip/audio/tinyalsa_hal代码
+
+
+开启btsnoop_hci方法
+setprop persist.bluetooth.btsnooppath /data/misc/bluetooth/logs/btsnoop_hci.log
+setprop persist.bluetooth.btsnoopenable true
+setprop persist.bluetooth.btsnooplogmode full
+
+adb pull /data/misc/bluetooth/logs/btsnoop_hci.log
+adb pull /data/misc/bluetooth/logs/btsnoop_hci.log.last
+
+打电话时蓝牙可能不停断开重启，这个是固件原因,AP6398S我提供的是这个固件，如果你们有其它模块请找正基拿新固件
+adb push BCM4359C0_003.001.006.0174.0433.hcd /vendor/etc/firmware//BCM4359C0.hcd
+
+
+
+如果你想配制pcm clock 256KHZ  512KHZ验证， i2s3_2ch 下加rockchip,bclk-fs = <32>; rockchip,bclk-fs = <64>; 再用示波器测试即可。 
+
+
+若可跑开发板固件，可先用下面固件验证看。
+链接：https://pan.baidu.com/s/1GuTopLJRoE84Hl0wnboJ2g 
+提取码：1122 
+
+
+
+
+
+
+

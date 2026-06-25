@@ -1,0 +1,64 @@
+diff --git a/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java b/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
+old mode 100644
+new mode 100755
+index 658feff71..f09f7c176
+--- a/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
++++ b/src/com/android/bluetooth/a2dpsink/A2dpSinkStreamHandler.java
+@@ -56,7 +56,7 @@ import java.util.List;
+  */
+ public class A2dpSinkStreamHandler extends Handler {
+     private static final String TAG = "A2dpSinkStreamHandler";
+-    private static final boolean DBG = Log.isLoggable(TAG, Log.DEBUG);
++    private static final boolean DBG = true;//Log.isLoggable(TAG, Log.DEBUG);
+ 
+     // Configuration Variables
+     private static final int DEFAULT_DUCK_PERCENT = 25;
+@@ -148,9 +148,9 @@ public class A2dpSinkStreamHandler extends Handler {
+         switch (message.what) {
+             case SRC_STR_START:
+                 mStreamAvailable = true;
+-                if (isTvDevice() || shouldRequestFocus()) {
++                //if (isTvDevice() || shouldRequestFocus()) {
+                     requestAudioFocusIfNone();
+-                }
++                //}
+                 break;
+ 
+             case SRC_STR_STOP:
+@@ -170,10 +170,10 @@ public class A2dpSinkStreamHandler extends Handler {
+             case SRC_PLAY:
+                 mStreamAvailable = true;
+                 // Remote play command.
+-                if (isIotDevice() || isTvDevice() || shouldRequestFocus()) {
++                //if (isIotDevice() || isTvDevice() || shouldRequestFocus()) {
+                     requestAudioFocusIfNone();
+-                    break;
+-                }
++                //    break;
++                //}
+                 break;
+ 
+             case SRC_PAUSE:
+@@ -188,6 +188,7 @@ public class A2dpSinkStreamHandler extends Handler {
+             case DISCONNECT:
+                 // Remote device has disconnected, restore everything to default state.
+                 mSentPause = false;
++				abandonAudioFocus();
+                 break;
+ 
+             case AUDIO_FOCUS_CHANGE:
+diff --git a/src/com/android/bluetooth/avrcpcontroller/BluetoothMediaBrowserService.java b/src/com/android/bluetooth/avrcpcontroller/BluetoothMediaBrowserService.java
+old mode 100644
+new mode 100755
+index ea9b25672..f43b7c488
+--- a/src/com/android/bluetooth/avrcpcontroller/BluetoothMediaBrowserService.java
++++ b/src/com/android/bluetooth/avrcpcontroller/BluetoothMediaBrowserService.java
+@@ -50,7 +50,7 @@ import java.util.List;
+  */
+ public class BluetoothMediaBrowserService extends MediaBrowserServiceCompat {
+     private static final String TAG = "BluetoothMediaBrowserService";
+-    private static final boolean DBG = Log.isLoggable(TAG, Log.DEBUG);
++    private static final boolean DBG = true;//Log.isLoggable(TAG, Log.DEBUG);
+ 
+     private static BluetoothMediaBrowserService sBluetoothMediaBrowserService;
+ 

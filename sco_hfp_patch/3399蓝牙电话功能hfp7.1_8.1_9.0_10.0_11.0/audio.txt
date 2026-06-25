@@ -1,0 +1,33 @@
+tinyalsa_hal/audio_hw.c
+static size_t get_input_buffer_size(unsigned int sample_rate,
+                                    audio_format_t format,
+                                    unsigned int channel_count,
+                                    bool is_low_latency)
+{
+    const struct pcm_config *config = is_low_latency ?
+                                              &pcm_config_in_low_latency : &pcm_config_in;
+    size_t size;
+
+    /*
+     * take resampling into account and return the closest majoring
+     * multiple of 16 frames, as audioflinger expects audio buffers to
+     * be a multiple of 16 frames
+     */
+    size = (config->period_size * sample_rate) / config->rate;
+    size *= channel_count * audio_bytes_per_sample(format);
+    /* make sure the size is multiple of 32 bytes
+     * At 48 kHz mono 16-bit PCM:
+     *  5.000 ms = 240 frames = 15*16*1*2 = 480, a whole multiple of 32 (15)
+     *  3.333 ms = 160 frames = 10*16*1*2 = 320, a whole multiple of 32 (10)
+     */
+    size += 0x1f;
+    size &= ~0x1f;
+
+    return size;
+}
+
+tinyalsa_hal/audio_hw.h
+#define DEFAULT_PLAYBACK_SAMPLERATE 48000
+#define HDMI_MULTI_DEFAULT_SAMPLING_RATE  48000
+    .rate = 48000,
+    .rate = 48000,

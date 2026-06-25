@@ -1,0 +1,6 @@
+device/rockchip/common打上enableSink13_device_rockchip_common.patch
+
+package/Modules/Bluetooth打上sinkRequestAudioFocus(packageModulesBluetooth).patch
+
+
+AvrcpPlayerDemo12-13为获取手机歌曲播放信息的demo，可以控制手机播放暂停，获取歌曲名称等

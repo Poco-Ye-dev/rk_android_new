@@ -1,0 +1,28 @@
+From ab610ed0838ccd05f47f48e481b34d0fef06b47b Mon Sep 17 00:00:00 2001
+From: Zou Dengming <marsow.zou@rock-chips.com>
+Date: Mon, 15 May 2023 22:27:05 +0800
+Subject: [PATCH 1/2] disable BTA_AG_FEAT_CODEC when 'DISABLE_WBS' is TRUE
+
+Change-Id: Ie1b191447484ffe292c42762dc811958e5947901
+---
+ btif/src/btif_hf.cc | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/btif/src/btif_hf.cc b/btif/src/btif_hf.cc
+index ec4c13f47..aa70e9f06 100644
+--- a/btif/src/btif_hf.cc
++++ b/btif/src/btif_hf.cc
+@@ -746,6 +746,10 @@ class HeadsetInterface : Interface {
+ 
+ bt_status_t HeadsetInterface::Init(Callbacks* callbacks, int max_hf_clients,
+                                    bool inband_ringing_enabled) {
++  #if (DISABLE_WBS == TRUE)
++    btif_hf_features &= ~BTA_AG_FEAT_CODEC;
++  #endif
++
+   if (inband_ringing_enabled) {
+     btif_hf_features |= BTA_AG_FEAT_INBAND;
+   } else {
+-- 
+2.25.1
+

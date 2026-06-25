@@ -1,0 +1,114 @@
+diff --git a/packages/modules/Bluetooth/system/btif/include/btif_dm.h b/packages/modules/Bluetooth/system/btif/include/btif_dm.h
+index a1b2c3d..e5f6g7h 100644
+--- a/packages/modules/Bluetooth/system/btif/include/btif_dm.h
++++ b/packages/modules/Bluetooth/system/btif/include/btif_dm.h
+@@ -118,6 +118,9 @@ void btif_dm_metadata_changed(const RawAddress& remote_bd_addr, int key,
+                               std::vector<uint8_t> value);
++/** 恢复已配对LE设备的密钥，用于蓝牙开启时重连 */
++void btif_dm_restore_le_device_keys();
++
+ void btif_dm_hh_open_failed(RawAddress* bdaddr);
+
+diff --git a/packages/modules/Bluetooth/system/btif/src/btif_dm.cc b/packages/modules/Bluetooth/system/btif/src/btif_dm.cc
+index a1b2c3d..e5f6g7h 100644
+--- a/packages/modules/Bluetooth/system/btif/src/btif_dm.cc
++++ b/packages/modules/Bluetooth/system/btif/src/btif_dm.cc
+@@ -2376,6 +2376,9 @@ void btif_dm_enable() {
+   btif_add_local_irk_to_resolving_list();
+
+   // Enable address consolidation.
+   btif_storage_load_le_devices();
++
++  // 恢复已配对LE设备的密钥，使设备能够在蓝牙开启后重连
++  btif_dm_restore_le_device_keys();
+
+   /* This function will also trigger the adapter_properties_cb
+   ** and bonded_devices_info_cb
+@@ -4403,6 +4406,75 @@ void btif_dm_metadata_changed(const RawAddress& remote_bd_addr, int key,
+   }
+ }
+
++/*******************************************************************************
++ *
++ * 函数          btif_dm_restore_le_device_keys
++ *
++ * 描述          恢复所有已配对设备的LE密钥从NVRAM。
++ *               这对于LE外围设备在蓝牙关闭后重新开启时能够重连是必需的。
++ *               没有此操作，重连时的加密请求将因HCI_ERR_KEY_MISSING而失败。
++ *               修复问题：遥控器/蓝牙设备关闭投影仪蓝牙后再开启无法重连
++ *
++ ******************************************************************************/
++void btif_dm_restore_le_device_keys() {
++  btif_bonded_devices_t bonded_devices;
++  btif_in_fetch_bonded_devices(&bonded_devices, 0);
++
++  log::info("正在恢复{}个已配对设备的LE密钥", bonded_devices.num_devices);
++
++  for (uint16_t i = 0; i < bonded_devices.num_devices; i++) {
++    const RawAddress& bd_addr = bonded_devices.devices[i].bda;
++
++    // 恢复LE PENC密钥（对端加密密钥 - LTK长期密钥）
++    // PENC是重连加密的关键密钥，如果缺失会导致加密失败0x06（HCI_ERR_KEY_MISSING）
++    tBTM_LE_PENC_KEYS penc_key = {};
++    if (btif_storage_get_ble_bonding_key(bd_addr, BTM_LE_KEY_PENC,
++                                         reinterpret_cast<uint8_t*>(&penc_key),
++                                         sizeof(penc_key)) == BT_STATUS_SUCCESS) {
++      tBTM_LE_KEY_VALUE key_value = {};
++      key_value.penc_key = penc_key;
++      btm_sec_save_le_key(bd_addr, BTM_LE_KEY_PENC, &key_value, false);
++      log::verbose("已恢复PENC密钥 for {}", bd_addr);
++    }
++
++    // 恢复LE PID密钥（对端身份密钥 - IRK）
++    // 用于解析随机地址RPA
++    tBTM_LE_PID_KEYS pid_key = {};
++    if (btif_storage_get_ble_bonding_key(bd_addr, BTM_LE_KEY_PID,
++                                         reinterpret_cast<uint8_t*>(&pid_key),
++                                         sizeof(pid_key)) == BT_STATUS_SUCCESS) {
++      tBTM_LE_KEY_VALUE key_value = {};
++      key_value.pid_key = pid_key;
++      btm_sec_save_le_key(bd_addr, BTM_LE_KEY_PID, &key_value, false);
++      log::verbose("已恢复PID密钥 for {}", bd_addr);
++    }
++
++    // 恢复LE PCSRK密钥（对端签名密钥）
++    // 用于LE数据签名
++    tBTM_LE_PCSRK_KEYS pcsrk_key = {};
++    if (btif_storage_get_ble_bonding_key(bd_addr, BTM_LE_KEY_PCSRK,
++                                         reinterpret_cast<uint8_t*>(&pcsrk_key),
++                                         sizeof(pcsrk_key)) == BT_STATUS_SUCCESS) {
++      tBTM_LE_KEY_VALUE key_value = {};
++      key_value.pcsrk_key = pcsrk_key;
++      btm_sec_save_le_key(bd_addr, BTM_LE_KEY_PCSRK, &key_value, false);
++      log::verbose("已恢复PCSRK密钥 for {}", bd_addr);
++    }
++
++    // 恢复LE LENC密钥（本地加密密钥 - 用于外围角色）
++    // 当设备作为外围角色时需要此密钥来响应加密请求
++    tBTM_LE_LENC_KEYS lenc_key = {};
++    if (btif_storage_get_ble_bonding_key(bd_addr, BTM_LE_KEY_LENC,
++                                         reinterpret_cast<uint8_t*>(&lenc_key),
++                                         sizeof(lenc_key)) == BT_STATUS_SUCCESS) {
++      tBTM_LE_KEY_VALUE key_value = {};
++      key_value.lenc_key = lenc_key;
++      btm_sec_save_le_key(bd_addr, BTM_LE_KEY_LENC, &key_value, false);
++      log::verbose("已恢复LENC密钥 for {}", bd_addr);
++    }
++
++    // 恢复LE LCSRK密钥（本地签名密钥）
++    // 用于本地签名数据
++    tBTM_LE_LCSRK_KEYS lcsrk_key = {};
++    if (btif_storage_get_ble_bonding_key(bd_addr, BTM_LE_KEY_LCSRK,
++                                         reinterpret_cast<uint8_t*>(&lcsrk_key),
++                                         sizeof(lcsrk_key)) == BT_STATUS_SUCCESS) {
++      tBTM_LE_KEY_VALUE key_value = {};
++      key_value.lcsrk_key = lcsrk_key;
++      btm_sec_save_le_key(bd_addr, BTM_LE_KEY_LCSRK, &key_value, false);
++      log::verbose("已恢复LCSRK密钥 for {}", bd_addr);
++    }
++  }
++}
++
+ namespace bluetooth {
+ namespace legacy {
+ namespace testing {
